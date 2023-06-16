@@ -1,0 +1,24 @@
+FROM arm64v8/golang:1.16-alpine as builder
+
+WORKDIR /build
+
+COPY . .
+
+RUN apk add build-base librdkafka-dev pkgconf
+
+WORKDIR /build/testing/producer
+RUN go build -tags dynamic -v -o kafka-producer
+
+WORKDIR /build/testing/consumer
+RUN go build -tags dynamic -v -o kafka-consumer
+
+FROM arm64v8/golang:1.16-alpine
+
+RUN apk add --no-cache ca-certificates build-base librdkafka-dev pkgconf
+
+WORKDIR /go
+
+COPY --from=builder /build/testing/consumer/kafka-producer kafka-producer
+COPY --from=builder /build/testing/consumer/kafka-consumer kafka-consumer
+
+RUN chmod 755 /go/kafka-*
