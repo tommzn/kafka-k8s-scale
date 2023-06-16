@@ -1,26 +1,55 @@
-# Use the latest 2.1 version of CircleCI pipeline process engine.
-# See: https://circleci.com/docs/configuration-reference
 version: 2.1
 
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/configuration-reference/#jobs
+orbs:
+  slack: circleci/slack@4.9.3
+
 jobs:
-  say-hello:
-    # Specify the execution environment. You can specify an image from Docker Hub or use one of our convenience images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/configuration-reference/#executor-job
-    docker:
-      - image: cimg/base:stable
-    # Add steps to the job
-    # See: https://circleci.com/docs/configuration-reference/#steps
+  notify:
+    machine:
+      image: ubuntu-2004:202101-01
+    steps:
+      - slack/notify:
+          template: success_tagged_deploy_1
+  github-build-and-push:
+    machine:
+      image: ubuntu-2004:202101-01
+    resource_class: arm.medium
     steps:
       - checkout
       - run:
-          name: "Say hello"
-          command: "echo Hello, World!"
-
-# Orchestrate jobs using workflows
-# See: https://circleci.com/docs/configuration-reference/#workflows
+          name: GHCR Login
+          command: echo $GHCR_PAT | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+      - run:
+          name: Build Image
+          working_directory: k8s
+          command: |
+            IMAGE_TAG="$(git tag -l k8s/v* --sort=authordate | tail  -n 1 | sed 's/k8s\///')"
+            echo Image Tag $IMAGE_TAG
+            docker build -t $GHCR_REPOSITORY:$IMAGE_TAG -f Dockerfile.arm64 .
+            docker tag $GHCR_REPOSITORY:$IMAGE_TAG $GHCR_REPOSITORY:latest
+            docker push $GHCR_REPOSITORY:$IMAGE_TAG
+            docker push $GHCR_REPOSITORY:latest
+      - run:
+          name: GHCR Logout
+          command: docker logout
+    
 workflows:
-  say-hello-workflow:
+  version: 2
+  arm64-image-build:
     jobs:
-      - say-hello
+      - github-build-and-push:
+          context: github-env
+          filters:
+            tags:
+              only: /^k8s\/v[0-9]+(\.[0-9]+)*$/
+            branches:
+              ignore: /.*/
+      - notify: 
+          context: slack-env
+          filters:
+            tags:
+              only: /^k8s\/v[0-9]+(\.[0-9]+)*$/
+            branches:
+              ignore: /.*/
+          requires:
+            - github-build-and-push
