@@ -18,7 +18,7 @@ RUN apk add --no-cache ca-certificates build-base librdkafka-dev pkgconf
 
 WORKDIR /go
 
-COPY --from=builder /build/testing/consumer/kafka-producer kafka-producer
+COPY --from=builder /build/testing/producer/kafka-producer kafka-producer
 COPY --from=builder /build/testing/consumer/kafka-consumer kafka-consumer
 
 RUN chmod 755 /go/kafka-*
