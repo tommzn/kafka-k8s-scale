@@ -1,4 +1,4 @@
-FROM arm64v8/golang:1.16-alpine as builder
+FROM arm64v8/golang:1.19-alpine as builder
 
 WORKDIR /build
 
@@ -12,7 +12,7 @@ RUN go build -tags dynamic -v -o kafka-producer
 WORKDIR /build/testing/consumer
 RUN go build -tags dynamic -v -o kafka-consumer
 
-FROM arm64v8/golang:1.16-alpine
+FROM arm64v8/golang:1.19-alpine
 
 RUN apk add --no-cache ca-certificates build-base librdkafka-dev pkgconf
 
