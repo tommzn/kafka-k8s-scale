@@ -1,3 +1,4 @@
 testing/consumer/consumer
 testing/producer/producer
 .circleci/config.yml
+kafka-k8s-scale

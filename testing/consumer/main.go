@@ -14,6 +14,7 @@ var bootstrapServers = flag.String("bootstrap-servers", "localhost", "Kafka serv
 var groupId = flag.String("group-id", "consumer01", "Kafka consumer id")
 var topics = flag.String("topics", "hello-world", "Kafka topic(s) to consume messages from")
 var runtime = flag.Int("runtime", 300, "Time this publisher will send messages to Kafka.(Seconds, default: 5m)")
+var readInterval = flag.Int("read-interval", 1000, "Rate messages will be read from topic (MilliSeconds, default: 1s)")
 
 func main() {
 
@@ -54,6 +55,7 @@ func consumeMessages(consumer *kafka.Consumer, ctx context.Context) {
 		if len(ctx.Done()) > 0 {
 			return
 		}
+		time.Sleep(time.Duration(*readInterval) * time.Millisecond)
 	}
 }
 
